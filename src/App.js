@@ -3,8 +3,10 @@ import "./App.css"
 import Post from "./Post";
 import { auth, db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { Modal, makeStyles, Button, Input } from "@material-ui/core";
+import { Modal, makeStyles, Button, Input, } from "@material-ui/core";
 import { classes } from "@material-ui/styles";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import ImageUpload from "./ImageUpload";
 
 function getModalStyle() {
   const top = 50;
@@ -35,9 +37,12 @@ function App() {
 
   const [posts, setPosts] = useState([]);
   const [open, setOpen] = useState(false);
+
+  const [openSignIn, setOpenSignIn] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [user, setUser] = useState(null);
 
   async function loadPosts() {
     const querySnapshot = await getDocs(collection(db, "posts"));
@@ -50,27 +55,74 @@ function App() {
     setPosts(arr);
   }
 
+  useEffect(
+    () => {
+      const unsubscribe = auth.onAuthStateChanged((authUser) => {
+        if (authUser) {
+          console.log(authUser);
+          setUser(authUser)
+
+          if (authUser.displayName) {
+
+          } else {
+            return authUser.updateProfile({
+              displayName: username,
+            })
+          }
+
+        }
+        else {
+          setUser(null);
+        }
+
+        return () => { }
+        unsubscribe(null)
+      })
+    }, [user, username]);
+
   useEffect(() => {
     loadPosts()
   }, []);
 
   const signUp = (Event) => {
 
+    //altera o comportamento padrão do formuláro
     Event.preventDefault();
 
-    auth
-      .createUserWithEmailAndPassword(email, password)
+
+    // teste('pablo@gmail.com', '123456');
+
+
+    createUserWithEmailAndPassword(email, password)
+      .then((authUser) => {
+        authUser.user.updateProfile({
+          displayName: username
+        })
+      })
       .catch((error) => alert(error.message));
+
+    setOpen(false);
+
+    const SignIn = (Event) => {
+      Event.preventDefault();
+
+      signInWithEmailAndPassword(email, password)
+        .catch((error) => alert(error.message));
+
+      setOpenSignIn(false);
+    }
   }
 
   return (
     <div className="app">
+
+      <ImageUpload />
       <Modal
-        open={open}
-        onClose={() => setOpen(false)}
+        open={openSignIn}
+        onClose={() => setOpenSignIn(false)}
       >
         <div style={modalStyle} className={classes.paper}>
-          <form className="app__signup">
+          <form className="app__signup" >
             <center>
               <img
                 className="app_headerImage"
@@ -78,12 +130,6 @@ function App() {
                 alt="Instagram's logo"
               />
             </center>
-            <Input
-              placeholder="text"
-              type="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
             <Input
               placeholder="email"
               type="text"
@@ -96,7 +142,7 @@ function App() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <Button type="submit" onClick={signUp}>Sign Up</Button>
+            <Button type="submit" onClick={openSignIn}>Sign In</Button>
           </form>
         </div>
       </Modal>
@@ -107,9 +153,13 @@ function App() {
           alt="Instagram's logo"
         />
       </div>
-
-      <Button onClick={() => setOpen(true)}>Sign Up</Button>
-
+      {user ? (
+        <Button onClick={() => auth.signOut}>Logout</Button>) :
+        (<div className="app_loginContainer">
+          <Button onClick={() => setOpenSignIn(true)}>Sign In</Button>
+          <Button onClick={() => setOpen(true)}>Sign Up</Button>
+        </div>
+        )}
       {
         posts.map(post => (
           <Post username={post.username} caption={post.caption} imageUrl={post.imageUrl} />
