@@ -67,9 +67,10 @@ function App() {
             if (authUser.displayName) {
 
             } else {
-              return authUser.updateProfile({
-                displayName: username,
-              })
+              return authUser.displayName = username;
+              // authUser.updateProfile({
+              //   displayName: username,
+              // })
             }
 
           }
@@ -104,12 +105,14 @@ function App() {
 
     //altera o comportamento padrão do formuláro
     Event.preventDefault();
+    console.log(username)
     // teste('pablo@gmail.com', '123456');
 
     createUserWithEmailAndPassword(auth, email, password)
-      .then((auth) => {
+      .then((authUser) => {
         console.log(auth.user)
 
+        auth.user.displayName = username
         // auth.user.updateProfile({
         //   displayName: username
         // })
@@ -124,16 +127,21 @@ function App() {
   const SignIn = (Event) => {
     Event.preventDefault();
 
-    signInWithEmailAndPassword(auth, email, password)
-      .catch((error) => alert(error.message));
+    signInWithEmailAndPassword(auth, email, password).then((user) => {
+
+      console.log('o usário é: ', user);
+    }).catch((error) => alert(error.message));
 
     setOpenSignIn(false);
   }
 
   return (
     <div className="app">
-
-      <ImageUpload />
+      {user?.displayName ? (
+        <ImageUpload username={user.displayName} />
+      ) : (
+        <h3>Sorry, you need to login to Upload</h3>
+      )}
       <Modal
         open={openSignIn}
         onClose={() => setOpenSignIn(false)}
