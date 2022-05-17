@@ -5,7 +5,7 @@ import { auth, db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { Modal, makeStyles, Button, Input, } from "@material-ui/core";
 import { classes } from "@material-ui/styles";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, getAuth, updateProfile } from "firebase/auth";
 import ImageUpload from "./ImageUpload";
 
 function getModalStyle() {
@@ -57,28 +57,44 @@ function App() {
 
   useEffect(
     () => {
-      const unsubscribe = auth.onAuthStateChanged((authUser) => {
-        if (authUser) {
-          console.log(authUser);
-          setUser(authUser)
 
-          if (authUser.displayName) {
+      const unsubscribe =
+        auth.onAuthStateChanged((authUser) => {
+          if (authUser) {
+            console.log(authUser);
+            setUser(authUser)
 
-          } else {
-            return authUser.updateProfile({
-              displayName: username,
-            })
+            if (authUser.displayName) {
+
+            } else {
+              return authUser.updateProfile({
+                displayName: username,
+              })
+            }
+
+          }
+          else {
+            setUser(null);
           }
 
-        }
-        else {
-          setUser(null);
-        }
-
-        return () => { }
-        unsubscribe(null)
-      })
+          return () => { }
+          unsubscribe(null)
+        })
     }, [user, username]);
+
+  //  useEffect(() => {
+  //   // const unsubscribe = 
+  //   auth.onAuthStateChanged((authUser) => {
+  //     if (authUser) {
+  //       console.log(authUser);
+  //       setUser(authUser)
+  //     }
+  //     else {
+  //       setUser(null);
+  //     }
+  //   })
+
+  // }, [user, username]);
 
   useEffect(() => {
     loadPosts()
@@ -88,29 +104,30 @@ function App() {
 
     //altera o comportamento padrão do formuláro
     Event.preventDefault();
-
-
     // teste('pablo@gmail.com', '123456');
 
+    createUserWithEmailAndPassword(auth, email, password)
+      .then((auth) => {
+        console.log(auth.user)
 
-    createUserWithEmailAndPassword(email, password)
-      .then((authUser) => {
-        authUser.user.updateProfile({
-          displayName: username
-        })
+        // auth.user.updateProfile({
+        //   displayName: username
+        // })
       })
       .catch((error) => alert(error.message));
 
-    setOpen(false);
+    // setOpen(false);
+  }
 
-    const SignIn = (Event) => {
-      Event.preventDefault();
 
-      signInWithEmailAndPassword(email, password)
-        .catch((error) => alert(error.message));
 
-      setOpenSignIn(false);
-    }
+  const SignIn = (Event) => {
+    Event.preventDefault();
+
+    signInWithEmailAndPassword(auth, email, password)
+      .catch((error) => alert(error.message));
+
+    setOpenSignIn(false);
   }
 
   return (
@@ -142,11 +159,46 @@ function App() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <Button type="submit" onClick={openSignIn}>Sign In</Button>
+            <Button type="submit" onClick={SignIn}>Sign In</Button>
           </form>
         </div>
       </Modal>
 
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+      >
+        <div style={modalStyle} className={classes.paper}>
+          <form className="app__signup" >
+            <center>
+              <img
+                className="app_headerImage"
+                src="https://www.instagram.com/static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png"
+                alt="Instagram's logo"
+              />
+            </center>
+            <Input
+              placeholder="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <Input
+              placeholder="email"
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              placeholder="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button type="submit" onClick={signUp}>Sign Up</Button>
+          </form>
+        </div>
+      </Modal>
       <div className="app_header">
         <img className="app_headerImage"
           src="https://www.instagram.com/static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png"
@@ -154,7 +206,7 @@ function App() {
         />
       </div>
       {user ? (
-        <Button onClick={() => auth.signOut}>Logout</Button>) :
+        <Button onClick={() => auth.signOut()}>Logout</Button>) :
         (<div className="app_loginContainer">
           <Button onClick={() => setOpenSignIn(true)}>Sign In</Button>
           <Button onClick={() => setOpen(true)}>Sign Up</Button>
